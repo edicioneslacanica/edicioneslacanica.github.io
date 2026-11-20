@@ -58,19 +58,19 @@
 
 
 <style>
-.juego{--celda:min(3.4rem,calc((100vw - 2.5rem)/10));margin:0 auto 2.5rem;max-width:40rem}
+.juego{--celda:30px;margin:0 auto 2.5rem;max-width:40rem}
 .juego .cab{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;margin-bottom:.4rem}
 .juego .fecha{font-weight:700;color:var(--granate);text-transform:uppercase;letter-spacing:.08em;font-size:.95rem;margin:0}
 .juego .racha{margin:0;font-weight:700;color:var(--verde)}
 .juego h2{font-family:"Abril Fatface",Georgia,serif;font-weight:400;font-size:clamp(2rem,6vw,2.7rem);line-height:1.1;margin:.2rem 0 .6rem;color:var(--verde)}
 .juego .recuerdo{border-left:4px solid var(--oro);padding:.2rem 0 .2rem 1rem;margin:0 0 1.4rem;font-style:italic;font-size:1.15rem;color:var(--tinta-2)}
-.juego .tablero{position:relative;width:calc(var(--celda)*10);margin:0 auto;background:#fff;border:3px solid var(--verde);border-radius:16px;padding:6px;box-shadow:0 6px 18px rgba(30,70,54,.12);touch-action:none;user-select:none;-webkit-user-select:none}
-.juego .rejilla{display:grid;grid-template-columns:repeat(10,1fr);position:relative;z-index:1}
-.juego .celda{all:unset;box-sizing:border-box;width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:calc(var(--celda)*.58);color:var(--tinta);cursor:pointer;border-radius:50%;font-family:"Atkinson Canica",system-ui,sans-serif}
+.juego .tablero{position:relative;box-sizing:content-box;width:calc(var(--celda)*10);margin:0 auto;background:#fff;border:3px solid var(--verde);border-radius:16px;padding:6px;box-shadow:0 6px 18px rgba(30,70,54,.12);touch-action:none;user-select:none;-webkit-user-select:none}
+.juego .rejilla{display:grid;grid-template-columns:repeat(10,var(--celda));grid-auto-rows:var(--celda);position:relative;z-index:1}
+.juego .celda{all:unset;box-sizing:border-box;width:var(--celda);height:var(--celda);min-width:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:calc(var(--celda)*.58);color:var(--tinta);cursor:pointer;border-radius:50%;font-family:"Atkinson Canica",system-ui,sans-serif}
 .juego .celda.inicio{background:var(--oro);color:var(--tinta)}
 .juego .celda.pista{animation:latido 1s ease-in-out 3}
 @keyframes latido{50%{background:var(--oro);transform:scale(1.15)}}
-.juego svg.trazos{position:absolute;inset:6px;width:calc(100% - 12px);height:calc(100% - 12px);z-index:0;pointer-events:none}
+.juego svg.trazos{position:absolute;left:6px;top:6px;width:calc(var(--celda)*10);height:calc(var(--celda)*10);z-index:0;pointer-events:none}
 .juego .lista{list-style:none;padding:0;margin:1.4rem 0 .6rem;display:grid;grid-template-columns:repeat(2,1fr);gap:.45rem 1rem}
 .juego .lista li{font-weight:700;font-size:1.3rem;letter-spacing:.05em;display:flex;align-items:center;gap:.55rem}
 .juego .lista li::before{content:"";width:1.15rem;height:1.15rem;border:2.5px solid var(--verde);border-radius:5px;flex:none}
@@ -162,6 +162,9 @@
     var f=new Date(clave+"T12:00:00");
     $("j-fecha").textContent=DIAS[f.getDay()]+", "+f.getDate()+" de "+MESES[f.getMonth()]+" · "+s.seccion;
     $("j-titulo").textContent=s.titulo; $("j-texto").textContent=s.texto;
+    // tamaño de casilla según el ancho real disponible (los navegadores de Facebook e Instagram tienen otros márgenes)
+    function medir(){var j=$("juego"),disp=j.clientWidth-18;var c=Math.max(24,Math.min(54,Math.floor(disp/10)));j.style.setProperty("--celda",c+"px")}
+    medir();window.addEventListener("resize",medir);
     var N=s.grid.length, rej=$("j-rejilla"), celdas=[];
     for(var r=0;r<N;r++)for(var c=0;c<N;c++){
       var b=document.createElement("button");b.type="button";b.className="celda";b.textContent=s.grid[r][c];
