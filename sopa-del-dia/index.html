@@ -92,6 +92,9 @@
 .juego .final .boton.oro{margin:.3rem}
 .juego .final .libro{background:var(--crema-2);color:var(--tinta);border-radius:12px;padding:1rem;margin-top:1.2rem;text-align:left}
 .juego .final .libro p{color:var(--tinta);margin:0 0 .6rem;font-size:1.05rem}
+.juego .reloj{margin:0;font-weight:700;font-size:1.25rem;color:var(--tinta);font-variant-numeric:tabular-nums}
+.juego .final .tiempo{font-family:"Abril Fatface",Georgia,serif;font-size:3.2rem;color:var(--oro);margin:.2rem 0 0;line-height:1}
+.juego .record{display:inline-block;background:var(--oro);color:var(--tinta);font-weight:700;border-radius:99px;padding:.2rem .9rem;margin:.4rem 0}
 .juego .aviso{text-align:center;color:var(--tinta-2)}
 @media print{
  .cabecera,.pie,.heroe,.otras,.gratis,.juego .botones,.juego .final,.juego .progreso,.juego .como,.juego .cab .racha,.baldosas{display:none!important}
@@ -103,8 +106,9 @@
 <section class="juego" id="juego" aria-live="polite">
   <div class="cab">
     <p class="fecha" id="j-fecha">Cargando…</p>
-    <p class="racha" id="j-racha"></p>
+    <p class="reloj" id="j-reloj" aria-label="Tiempo">⏱ 0:00</p>
   </div>
+  <p class="racha" id="j-racha"></p>
   <h2 id="j-titulo">La sopa de hoy</h2>
   <p class="recuerdo" id="j-texto"></p>
   <div class="tablero" id="j-tablero">
@@ -115,6 +119,8 @@
   <ul class="lista" id="j-lista"></ul>
   <div class="final" id="j-final" role="dialog" aria-labelledby="j-enhora">
     <h3 id="j-enhora">¡Enhorabuena!</h3>
+    <p class="tiempo" id="j-tiempo"></p>
+    <p id="j-record"></p>
     <p id="j-final-txt">Has encontrado todas las palabras. Mañana, otra sopa nueva.</p>
     <a class="boton oro" id="j-whatsapp" href="#" rel="noopener">Compartir por WhatsApp</a>
     <div class="libro" id="j-libro"></div>
@@ -126,6 +132,7 @@
   <div class="como">
     <p><strong>Cómo se juega:</strong> toca la <strong>primera letra</strong> de una palabra y después la <strong>última</strong>. También puedes deslizar el dedo de una a otra.</p>
     <p>Las palabras van de izquierda a derecha o de arriba abajo. Cada día a medianoche hay una sopa nueva.</p>
+    <p><strong>¿Quién es más rápido?</strong> El reloj empieza al tocar la primera letra. Cada pista suma 15 segundos. Al acabar, comparte tu tiempo y reta a tu familia.</p>
   </div>
 </section>
 
@@ -165,6 +172,12 @@
     var ul=$("j-lista");
     palabras.slice().sort(function(a,b){return a.p.localeCompare(b.p)}).forEach(function(w){
       var li=document.createElement("li");li.textContent=w.p;w.li=li;ul.appendChild(li)});
+    var T=leer("sopa-t-"+clave,{ini:0,fin:0,pistas:0});
+    function seg(){var fin=T.fin||Date.now();return T.ini?Math.floor((fin-T.ini)/1000)+15*T.pistas:0}
+    function fmt(x){var m=Math.floor(x/60),r=x%60;return m+":"+String(r).padStart(2,"0")}
+    function pintarReloj(){$("j-reloj").textContent="⏱ "+fmt(seg())}
+    var tic=setInterval(function(){if(T.ini&&!T.fin)pintarReloj()},1000);pintarReloj();
+    function arrancar(){if(!T.ini){T.ini=Date.now();guardar("sopa-t-"+clave,T)}}
     var progreso=leer("sopa-"+clave,[]);
     palabras.forEach(function(w){if(progreso.indexOf(w.p)>=0)marcar(w,true)});
     actualizar();
@@ -174,7 +187,7 @@
     rej.addEventListener("pointerdown",function(e){var el=celdaDe(e);if(!el)return;e.preventDefault();
       if(inicio===el){limpiarInicio();return}
       if(inicio){probar(inicio,el);return}
-      limpiarInicio();inicio=el;el.classList.add("inicio");arrastrando=true});
+      arrancar();limpiarInicio();inicio=el;el.classList.add("inicio");arrastrando=true});
     rej.addEventListener("pointerup",function(e){if(!arrastrando)return;arrastrando=false;var el=celdaDe(e);
       if(el&&inicio&&el!==inicio)probar(inicio,el)});
     function limpiarInicio(){if(inicio)inicio.classList.remove("inicio");inicio=null}
@@ -198,18 +211,26 @@
       $("j-racha").textContent=racha.n>1?"Llevas "+racha.n+" días seguidos":"";
     }
     function terminar(){
+      if(!T.fin){T.fin=Date.now();guardar("sopa-t-"+clave,T)}
+      clearInterval(tic);pintarReloj();
+      var t=seg(), mejor=leer("sopa-mejor",0), nuevo=false;
+      if(T.ini&&(!mejor||t<mejor)&&!param){var yaGuardado=leer("sopa-mejor-dia","")===clave;if(!yaGuardado){mejor=t;nuevo=true;guardar("sopa-mejor",t);guardar("sopa-mejor-dia",clave)}}
+      $("j-tiempo").textContent=T.ini?fmt(t):"";
+      $("j-record").innerHTML=nuevo&&leer("sopa-partidas",0)>0?'<span class="record">¡Nuevo récord personal!</span>':(mejor&&T.ini?"Tu mejor tiempo: "+fmt(mejor):"");
+      if(leer("sopa-ultima","")!==clave){guardar("sopa-partidas",leer("sopa-partidas",0)+1);guardar("sopa-ultima",clave)}
       var racha=leer("sopa-racha",{n:0,ult:""});
       if(racha.ult!==clave&&!param){var ayer=new Date(hoy);ayer.setDate(ayer.getDate()-1);
         racha.n=(racha.ult===iso(ayer))?racha.n+1:1;racha.ult=clave;guardar("sopa-racha",racha)}
       $("j-racha").textContent=racha.n>1?"Llevas "+racha.n+" días seguidos":"";
       $("j-final-txt").textContent=(racha.n>1?"¡Ya llevas "+racha.n+" días seguidos! ":"Has encontrado todas las palabras. ")+"Mañana te espera otra sopa nueva.";
-      var txt="He hecho la sopa de letras de hoy: «"+s.titulo+"». ¿Te atreves? Está en letra grande: "+location.origin+"/sopa-del-dia/";
+      var txt=(T.ini?"He hecho la sopa de letras de hoy («"+s.titulo+"») en "+fmt(t)+". ¿Me ganas? ":"He hecho la sopa de letras de hoy: «"+s.titulo+"». ¿Te atreves? ")+"Está en letra grande: "+location.origin+"/sopa-del-dia/";
       $("j-whatsapp").href="https://wa.me/?text="+encodeURIComponent(txt);
       if(libro){$("j-libro").innerHTML="<p><strong>¿Te ha gustado?</strong> Esta sopa sale de nuestro libro <em>"+libro.titulo+"</em>: 100 sopas en letra muy grande, cada una con un recuerdo como el de hoy.</p><a class=\"boton\" href=\"https://www.amazon.es/dp/"+libro.asin+"\" rel=\"noopener\">Ver el libro en Amazon</a>"}
       $("j-final").classList.add("ver");$("j-pista").style.display="none";
     }
     $("j-pista").addEventListener("click",function(){
       var w=palabras.filter(function(x){return !x.hecha})[0];if(!w)return;
+      arrancar();T.pistas++;guardar("sopa-t-"+clave,T);pintarReloj();
       var el=celdas[w.f*N+w.c];el.classList.remove("pista");void el.offsetWidth;el.classList.add("pista");
     });
     $("j-imprimir").addEventListener("click",function(){window.print()});
